@@ -1,15 +1,11 @@
 # Create build image
-FROM python:3.11-slim as base-image 
+FROM python:3.11-slim as clone-mpython
 
 WORKDIR /root
+COPY micropython/ /usr/local/src/
 RUN echo "now building..." && \
     apt update && apt upgrade -y && \
-    apt install -y build-essential libreadline-dev libffi-dev git pkg-config gcc-arm-none-eabi libnewlib-arm-none-eabi
-
-
-FROM base-image as clone-mpython
-WORKDIR /usr/local/src
-RUN git clone --depth=1 --recurse-submodules https://github.com/micropython/micropython.git
+    apt install -y build-essential libreadline-dev libffi-dev git pkg-config make
 
 FROM clone-mpython as build-mpython
 WORKDIR /usr/local/src/micropython/
