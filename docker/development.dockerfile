@@ -10,7 +10,7 @@ RUN echo "now building..." && \
 FROM clone-mpython as build-mpython
 # WORKDIR /usr/local/src/micropython/
 WORKDIR /usr/local/src/micropython/mpy-cross
-RUN make
+RUN ls -la && make
 WORKDIR /usr/local/src/micropython/ports/unix
 RUN make submodules
 RUN make
