@@ -58,7 +58,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check space before cleanup
-        run: df -h
+        run:
+          sudo apt install -y tree >/dev/null 2>&1 || true
+          tree -L 2 .
+          df -h
 
       # Retrieved from https://zenn.dev/pinto0309/scraps/c6413eb15a1b2a
       - name: Clean space
