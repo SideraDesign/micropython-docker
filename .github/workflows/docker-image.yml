@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'dev*'
     tags:
       - 'v*'
 
@@ -115,6 +116,7 @@ jobs:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
           type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=test,enable=${{ github.ref_name != 'main' }}
           type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
         labels: |
           org.opencontainers.image.title=${{ env.IMAGE_NAME }}
