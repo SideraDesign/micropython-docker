@@ -24,7 +24,6 @@ make clean
 cd ../..
 cd mpy-cross
 make clean
-cd mpy-cross
 EOS
 
 CMD /usr/local/bin/micropython
