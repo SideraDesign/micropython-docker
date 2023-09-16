@@ -9,7 +9,6 @@ RUN echo "now building..." && \
     tree -L 2 /usr/local/src/
 
 FROM clone-mpython as build-mpython
-WORKDIR /usr/local/src/micropython
 WORKDIR /usr/local/src/micropython/
 RUN <<EOS
 cd mpy-cross
