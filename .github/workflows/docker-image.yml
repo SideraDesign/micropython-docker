@@ -17,6 +17,9 @@ env:
 
 jobs:
   login:
+    permissions:
+      packages: write
+
     runs-on: ubuntu-latest
     steps:
       # Set QEMU for multi platform support
