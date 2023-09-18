@@ -53,15 +53,8 @@ jobs:
       - name: Get microptyhon version
         id: micropython-version
         run: |
-          pwd
-          ls -la .
           cd micropython/
           pwd
-          ls -la .
-          git config fetch.recurseSubmodules
-          git config fetch.recurseSubmodules no
-          git config fetch.recurseSubmodules
-          git fetch --tags
           git describe --tags $(git rev-list --tags --max-count=1)
           echo "MICROPY_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> "$GITHUB_OUTPUT"
 
@@ -155,7 +148,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ steps.micropython-version.MICROPY_VERSION }}
+            type=raw,value=${{ steps.micropython-version.outputs.MICROPY_VERSION }}
             type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
