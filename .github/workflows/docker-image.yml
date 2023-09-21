@@ -18,8 +18,7 @@ env:
 jobs:
   login:
     permissions:
-      packages: write
-      contents: read
+      packages: delete
 
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +35,7 @@ jobs:
       - name: Get microptyhon version
         id: micropython-version
         run: |
-          echo "MICROPY_VERSION=test" >> "$GITHUB_OUTPUT"
+          echo "MICROPY_VERSION=test02" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
