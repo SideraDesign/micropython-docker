@@ -16,7 +16,7 @@ env:
   TARGET_PATH: micropython
 
 jobs:
-  login:
+  build_and_push:
     permissions:
       packages: write
 
