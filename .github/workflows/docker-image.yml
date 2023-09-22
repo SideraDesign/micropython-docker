@@ -145,6 +145,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.description=A multi-platform Docker container image supporting both AMD64 and ARM64 architectures for running MicroPython.
 
       - name: Build and push
         uses: docker/build-push-action@v4
