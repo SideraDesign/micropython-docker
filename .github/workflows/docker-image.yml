@@ -28,27 +28,11 @@ jobs:
         with:
             platforms: linux/arm64
 
-      # Restore cached target repositories
-      - name: Restore cache target
-        id: cache-target-restore
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.TARGET_PATH }}
-          key: cache-key-${{ env.TARGET_PATH }}
-
       # Recursively checkout all submodules
       - name: Checkout repository with all submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      # Save cached target repositories
-      - name: Save cache target
-        id: cache-target-save
-        uses: actions/cache/save@v3
-        with:
-          path: ${{ env.TARGET_PATH }}
-          key: cache-key-${{ env.TARGET_PATH }}
 
       - name: Get microptyhon version
         id: micropython-version
@@ -148,6 +132,7 @@ jobs:
           sudo apt-get autoremove -y >/dev/null 2>&1 || true
           sudo apt-get autoclean -y >/dev/null 2>&1 || true
           df -h
+
 
       - name: Docker meta
         id: meta
