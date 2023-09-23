@@ -25,7 +25,7 @@ EOS
 FROM python:3.11-slim
 ENV MICROPY_MICROPYTHON /usr/local/bin/micropython
 COPY --from=build-mpython /usr/local/bin/micropython /usr/local/bin/micropython
-COPY --from=build-mpython /usr/local/src/tests/ /usr/local/bin/src/tests
+COPY --from=build-mpython /usr/local/src/micropython/tests/ /usr/local/src/micropython/tests
 WORKDIR /usr/local/src/micropython/
 
 CMD /usr/local/bin/micropython
