@@ -22,13 +22,14 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      # Set QEMU for multi platform support
-      - name: Set up QEMU
+      - name: Set up QEMU for multi platform support
         uses: docker/setup-qemu-action@v3
         with:
             platforms: linux/arm64
 
-      # Restore cached target repositories
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Restore cache target
         if: ${{ github.ref_name != 'main' }}
         id: cache-target-restore
@@ -38,15 +39,13 @@ jobs:
           key: cache-key-${{ env.TARGET_PATH }}
           restore-keys: cache-key-${{ env.TARGET_PATH }}
 
-      # Recursively checkout all submodules
-      - name: Checkout repository with all submodules
+      - name: Recursively checkout all submodules
         if: ${{ github.ref_name == 'main' }} || ${{ steps.cache-target-restore.outputs.cache-hit != 'true' }}
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # Get tag version of micropython repository
-      - name: Get microptyhon version
+      - name: Get microptyhon version for image tag
         id: micropython-version
         run: |
           pwd
@@ -60,18 +59,16 @@ jobs:
           echo "micropython version: ${mpy_version}"
           echo "MICROPY_VERSION=${mpy_version:1}" >> "$GITHUB_OUTPUT"
 
-      # Get tag version of micropython repository
-      - name: Get microptyhon hash key recursive
+      - name: Get repository hash for image cache key
         id: micropython-hash
         run: |
             pwd
             cd micropython/
             ls -la .
-            mpy_hash=$(git ls-files --recurse-submodules | xargs git rev-parse --quiet --verify | sha256sum)
+            mpy_hash=$(git submodule foreach --quiet --recursive git rev-parse HEAD | sha256sum | cut -d ' ' -f 1)
             echo "micropython hash: ${mpy_hash}"
             echo "MICROPY_HASH=${mpy_hash}" >> "$GITHUB_OUTPUT"
 
-      # Save cached target repositories
       - name: Save cache target
         id: cache-target-save
         uses: actions/cache/save@v3
@@ -162,7 +159,6 @@ jobs:
           sudo apt-get autoremove -y >/dev/null 2>&1 || true
           sudo apt-get autoclean -y >/dev/null 2>&1 || true
           df -h
-
 
       - name: Docker meta
         id: meta
