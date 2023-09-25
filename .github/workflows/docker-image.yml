@@ -89,7 +89,7 @@ jobs:
       - name: Check space before cleanup
         run: |
           sudo apt install -y tree >/dev/null 2>&1 || true
-          tree -L 2 .
+          tree -a -L 2 .
           df -h
 
       # Retrieved from https://zenn.dev/pinto0309/scraps/c6413eb15a1b2a
