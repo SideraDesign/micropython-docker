@@ -1,25 +1,31 @@
 # Create build image
-FROM python:3.11-slim as clone-mpython
+FROM python:3.11-slim as build-mpython
 
 WORKDIR /root
-COPY micropython/ /usr/local/src/
-RUN echo "now building..." && \
-    apt update && apt upgrade -y && \
-    apt install -y build-essential libreadline-dev libffi-dev git pkg-config make
+COPY micropython/ /usr/local/src/micropython
+RUN <<EOS
+echo "### install build tools"
+apt update
+apt install -y build-essential libreadline-dev libffi-dev git pkg-config make tree
+cd /usr/local/src/micropython
+tree -L 2 -a /usr/local/src/
+echo "### build modules"
+cd mpy-cross
+make
+cd ..
+echo "### build for unix port"
+cd ports/unix
+make submodules
+make
+echo "### check and install"
+make test_full
+make install
+EOS
 
-FROM clone-mpython as build-mpython
+FROM python:3.11-slim
+ENV MICROPY_MICROPYTHON /usr/local/bin/micropython
+COPY --from=build-mpython /usr/local/bin/micropython /usr/local/bin/micropython
+COPY --from=build-mpython /usr/local/src/micropython/tests/ /usr/local/src/micropython/tests
 WORKDIR /usr/local/src/micropython/
-RUN cd mpy-cross && \
-    make && \
-    cd .. && \
-    cd ports/unix && \
-    make submodules && \
-    make && \
-    make test_full && \
-    make install && \
-    make clean && \
-    cd ../.. && \
-    cd mpy-cross && \
-    make clean
 
 CMD /usr/local/bin/micropython

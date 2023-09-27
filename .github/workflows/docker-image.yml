@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'dev*'
     tags:
       - 'v*'
 
@@ -12,120 +13,172 @@ env:
   REGISTRY: ghcr.io
   IMAGE_OWNER: ${{ github.repository_owner }}
   IMAGE_NAME: ${{ github.repository }}
+  TARGET_PATH: micropython
 
 jobs:
-  login:
+  build_and_push:
+    permissions:
+      packages: write
+
     runs-on: ubuntu-latest
     steps:
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-      with:
-          platforms: linux/arm64
+      - name: Set up QEMU for multi platform support
+        uses: docker/setup-qemu-action@v3
+        with:
+            platforms: linux/arm64
 
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Restore cache target
+        if: ${{ github.ref_name != 'main' }}
+        id: cache-target-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ env.TARGET_PATH }}
+          key: cache-key-${{ env.TARGET_PATH }}
+          restore-keys: cache-key-${{ env.TARGET_PATH }}
 
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v2
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Recursively checkout all submodules
+        if: ${{ github.ref_name == 'main' }} || ${{ steps.cache-target-restore.outputs.cache-hit != 'true' }}
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Check space before cleanup
-      run: df -h
+      - name: Get microptyhon version for image tag
+        id: micropython-version
+        run: |
+          pwd
+          cd micropython/
+          ls -la .
+          echo "git config fetch.recurseSubmodules $(git config fetch.recurseSubmodules)"
+          git config fetch.recurseSubmodules no
+          echo "git config fetch.recurseSubmodules $(git config fetch.recurseSubmodules)"
+          git fetch --tags
+          mpy_version=$(git describe --tags $(git rev-list --tags --max-count=1))
+          echo "micropython version: ${mpy_version}"
+          echo "MICROPY_VERSION=${mpy_version:1}" >> "$GITHUB_OUTPUT"
 
-    # Retrieved from https://zenn.dev/pinto0309/scraps/c6413eb15a1b2a
-    - name: Clean space
-      run: |
-        docker images
-        sudo rm -rf "/opt/*" || true
-        sudo rm -rf "/usr/share/dotnet" || true
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
-        sudo rm -rf "/usr/local/lib/android" || true
-        sudo rm -rf "/usr/local/share/boost" || true
-        sudo rm -rf "/usr/lib/jvm" || true
-        sudo rm -rf "/usr/share/swift" || true
-        sudo rm -rf "/usr/local/julia*" || true
-        sudo rm -rf "/usr/share/kotlinc" || true
-        sudo rm -rf "/usr/local/share/edge_driver" || true
-        sudo rm -rf "/usr/local/share/chromedriver-linux64" || true
-        sudo rm -rf "/usr/local/share/gecko_driver" || true
-        sudo rm -rf "/usr/share/miniconda" || true
-        sudo rm -rf "/usr/local/share/phantomjs*" || true
-        sudo rm -rf "/usr/share/sbt" || true
-        sudo rm -rf "/usr/local/sqlpackage" || true
-        docker rmi $(docker image ls -q --filter "reference=node*")
-        docker rmi $(docker image ls -q --filter "reference=buildpack*")
-        docker rmi $(docker image ls -q --filter "reference=debian*")
-        docker rmi $(docker image ls -q --filter "reference=alpine*")
-        docker rmi $(docker image ls -q --filter "reference=ubuntu:18.04")
-        docker rmi $(docker image ls -q --filter "reference=ubuntu:20.04")
-        sudo npm uninstall bazel
-        rustup self uninstall -y
-        sudo apt purge \
-          ansible \
-          apache2 \
-          aria2 \
-          azure-cli \
-          cabal* \
-          clang* \
-          dotnet-sdk* \
-          firefox \
-          ghc* \
-          google-chrome-stable \
-          google-cloud-sdk \
-          kubectl \
-          libpq-dev \
-          microsoft-edge-stable \
-          moby-buildx \
-          moby-cli \
-          moby-compose \
-          moby-engine \
-          mongodb* \
-          mono-complete \
-          mysql* \
-          nginx \
-          node* \
-          npm* \
-          nuget \
-          php* \
-          postgresql* \
-          powershell \
-          r-base \
-          rpm \
-          ruby* \
-          sphinxsearch \
-          subversion \
-          yarn \
-          -yq >/dev/null 2>&1 || true
-        sudo apt-get autoremove -y >/dev/null 2>&1 || true
-        sudo apt-get autoclean -y >/dev/null 2>&1 || true
-        df -h
+      - name: Get repository hash for image cache key
+        id: micropython-hash
+        run: |
+            pwd
+            cd micropython/
+            ls -la .
+            mpy_hash=$(git submodule foreach --quiet --recursive git rev-parse HEAD | sha256sum | cut -d ' ' -f 1)
+            echo "micropython hash: ${mpy_hash}"
+            echo "MICROPY_HASH=${mpy_hash}" >> "$GITHUB_OUTPUT"
 
-    - name: Docker meta
-      id: meta
-      uses: docker/metadata-action@v4
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
-        labels: |
-          org.opencontainers.image.title=${{ env.IMAGE_NAME }}
-          org.opencontainers.image.licenses=MIT
+      - name: Save cache target
+        id: cache-target-save
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ env.TARGET_PATH }}
+          key: cache-key-${{ env.TARGET_PATH }}-${{ steps.micropython-hash.outputs.MICROPY_HASH }}
 
-    - name: Build and push
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: docker/development.dockerfile
-        platforms: linux/amd64,linux/arm64
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check space before cleanup
+        run: |
+          sudo apt install -y tree >/dev/null 2>&1 || true
+          tree -a -L 2 .
+          df -h
+
+      # Retrieved from https://zenn.dev/pinto0309/scraps/c6413eb15a1b2a
+      - name: Clean space
+        run: |
+          docker images
+          sudo rm -rf "/opt/*" || true
+          sudo rm -rf "/usr/share/dotnet" || true
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
+          sudo rm -rf "/usr/local/lib/android" || true
+          sudo rm -rf "/usr/local/share/boost" || true
+          sudo rm -rf "/usr/lib/jvm" || true
+          sudo rm -rf "/usr/share/swift" || true
+          sudo rm -rf "/usr/local/julia*" || true
+          sudo rm -rf "/usr/share/kotlinc" || true
+          sudo rm -rf "/usr/local/share/edge_driver" || true
+          sudo rm -rf "/usr/local/share/chromedriver-linux64" || true
+          sudo rm -rf "/usr/local/share/gecko_driver" || true
+          sudo rm -rf "/usr/share/miniconda" || true
+          sudo rm -rf "/usr/local/share/phantomjs*" || true
+          sudo rm -rf "/usr/share/sbt" || true
+          sudo rm -rf "/usr/local/sqlpackage" || true
+          docker rmi $(docker image ls -q --filter "reference=node*")
+          docker rmi $(docker image ls -q --filter "reference=buildpack*")
+          docker rmi $(docker image ls -q --filter "reference=debian*")
+          docker rmi $(docker image ls -q --filter "reference=alpine*")
+          docker rmi $(docker image ls -q --filter "reference=ubuntu:18.04")
+          docker rmi $(docker image ls -q --filter "reference=ubuntu:20.04")
+          sudo npm uninstall bazel
+          rustup self uninstall -y
+          sudo apt purge \
+            ansible \
+            apache2 \
+            aria2 \
+            azure-cli \
+            cabal* \
+            clang* \
+            dotnet-sdk* \
+            firefox \
+            ghc* \
+            google-chrome-stable \
+            google-cloud-sdk \
+            kubectl \
+            libpq-dev \
+            microsoft-edge-stable \
+            moby-buildx \
+            moby-cli \
+            moby-compose \
+            moby-engine \
+            mongodb* \
+            mono-complete \
+            mysql* \
+            nginx \
+            node* \
+            npm* \
+            nuget \
+            php* \
+            postgresql* \
+            powershell \
+            r-base \
+            rpm \
+            ruby* \
+            sphinxsearch \
+            subversion \
+            yarn \
+            -yq >/dev/null 2>&1 || true
+          sudo apt-get autoremove -y >/dev/null 2>&1 || true
+          sudo apt-get autoclean -y >/dev/null 2>&1 || true
+          df -h
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.micropython-version.outputs.MICROPY_VERSION }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+          labels: |
+            org.opencontainers.image.title=${{ env.IMAGE_NAME }}
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.description=”A multi-platform Docker container image supporting both AMD64 and ARM64 architectures for running MicroPython."
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: docker/development.dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
