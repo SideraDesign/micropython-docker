@@ -40,6 +40,9 @@ jobs:
           echo "micropython version: ${mpy_version}"
           echo "MICROPY_VERSION=${mpy_version:1}" >> "$GITHUB_OUTPUT"
           git submodule deinit -f --all
+          pwd
+          ls -la .
+          ls -la micropython/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

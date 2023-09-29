@@ -14,9 +14,11 @@ apt-get install -y libreadline-dev
 apt-get install -y libffi-dev
 apt-get install -y pkg-config
 echo "### install micropython repository"
-ls -la /usr/local/src/micropython-docker
-ls -la /usr/local/src/micropython-docker/micropython
+pwd
+ls -la .
+ls -la micropython/
 git submodule update --init micropython/
+ls -la micropython/
 cd micropython
 echo "### build for unix port standard"
 source tools/ci.sh && ci_unix_standard_build
