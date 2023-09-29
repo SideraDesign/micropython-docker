@@ -1,5 +1,5 @@
 # Create build image
-FROM python:3.11-slim as build-mpython
+FROM python:3.11-slim
 
 ENV BUILD_VERBOSE 1
 COPY ./ /usr/local/src/micropython-docker
@@ -21,9 +21,13 @@ git submodule update --init micropython/
 ls -la micropython/
 cd micropython
 echo "### build for unix port standard"
-source tools/ci.sh && ci_unix_standard_build
+pwd
+ls -la tools
+echo "source tools/ci.sh"
+source tools/ci.sh
+ci_unix_standard_build
 echo "### run main test suite"
-source tools/ci.sh && ci_unix_standard_run_tests
+ci_unix_standard_run_tests
 tests/run-tests.py --print-failures
 echo "### install"
 cd ports/unix
