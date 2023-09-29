@@ -22,9 +22,11 @@ ls -la micropython/
 cd micropython
 echo "### build for unix port standard"
 pwd
-ls -la tools
-echo "source tools/ci.sh"
-source tools/ci.sh
+ls -la ./tools
+echo "source ./tools/ci.sh"
+source ./tools/ci.sh
+echo "source /usr/local/src/micropython-docker/micropython/tools/ci.sh"
+source /usr/local/src/micropython-docker/micropython/tools/ci.sh
 ci_unix_standard_build
 echo "### run main test suite"
 ci_unix_standard_run_tests
