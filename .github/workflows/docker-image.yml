@@ -22,10 +22,10 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - name: Set up QEMU for multi platform support
-        uses: docker/setup-qemu-action@v3
-        with:
-            platforms: linux/arm64
+      # - name: Set up QEMU for multi platform support
+      #   uses: docker/setup-qemu-action@v3
+      #   with:
+      #       platforms: linux/arm64
 
       - name: Checkout repository
         uses: actions/checkout@v4
