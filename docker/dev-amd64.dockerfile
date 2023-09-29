@@ -7,7 +7,7 @@ WORKDIR /usr/local/src/micropython
 RUN <<EOS
 echo "### install build tools"
 apt-get update
-apt-get install -y make build-essential libreadline-dev libffi-dev pkg-config
+apt-get install -y git make build-essential libreadline-dev libffi-dev pkg-config
 echo "### build for unix port standard"
 source tools/ci.sh && ci_unix_standard_build
 echo "### run main test suite"
