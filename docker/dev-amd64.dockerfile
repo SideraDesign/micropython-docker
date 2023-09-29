@@ -4,7 +4,7 @@ FROM python:3.11-slim
 ENV BUILD_VERBOSE 1
 COPY ./ /usr/local/src/micropython-docker
 WORKDIR /usr/local/src/micropython-docker
-RUN <<EOS
+RUN bash <<EOS
 echo "### install build tools"
 apt-get update
 apt-get install -y git
